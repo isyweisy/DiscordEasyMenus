@@ -13,7 +13,7 @@ import discord, DiscordEasyMenus
 import Settings
 
 # Make your custom bot as normal, but this time inherit from DiscordEasyMenus.Bot
-# Any overrides to on_raw_reaction_add or on_raw_reaction_remove will need to include a call to super however.
+# Any overrides to on_raw_reaction_add, on_raw_reaction_remove or close will need to include a call to super however.
 class MyBot(DiscordEasyMenus.Bot):
     async def on_ready(self):
         print(f"Logged in as {self.user.name}#{self.user.discriminator}")
@@ -60,6 +60,10 @@ async def close_down(payload, menu):
     # Close the menu when we are done, to prevent further changes and interactiona, and to free memory.
     await menu.close()
 
+# What will happen if the bot gets shutdown whilst this menu is still open?
+async def on_close(menu):
+    await menu.edit(body="This menu was open when the bot was shutdown!", color=discord.Color.blue())
+
 # This is the command to create our menu.
 @bot.command()
 async def mymenu(ctx):
@@ -71,9 +75,9 @@ async def mymenu(ctx):
         DiscordEasyMenus.MenuButton(discord.PartialEmoji(name="\U00002753"), on_down=question_down, on_up=question_up),
         DiscordEasyMenus.MenuButton(discord.PartialEmoji(name="\U0001F60E"), on_down=cool_down, on_up=cool_up)
     ]
-    # Create our menu, specifying title, body, color and buttons.
+    # Create our menu, specifying title, body, color, buttons and on_close function.
     # Make sure to pass through the context (ctx), but the other parameters are optional.
-    menu = await bot.create_menu(ctx, "Hello World!", "This is a menu!", discord.Color.dark_red(), buttons)
+    menu = await bot.create_menu(ctx, "Hello World!", "This is a menu!", discord.Color.dark_red(), buttons, on_close)
 
     # Let's add another button whilst the menu is already up.
     # This one doesn't have and on_up

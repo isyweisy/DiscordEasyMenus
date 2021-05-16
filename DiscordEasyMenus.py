@@ -19,10 +19,10 @@ class Bot(commands.Bot):
         super().__init__(*args, **kwargs)
         self.menus = {}
 
-    async def create_menu(self, ctx, title=None, body=None, color=None, buttons=[]):
+    async def create_menu(self, ctx, title=None, body=None, color=None, buttons=[], on_close=None):
         """An easy method of generating reaction based Discord bot menus."""
         menu = Menu()
-        await menu.create(ctx, self, title, body, color, buttons)
+        await menu.create(ctx, self, title, body, color, buttons, on_close)
         # Store this in our dictionary, indexed by the message ID, so that we can easily identify it later.
         self.menus[menu.message.id] = menu
         return menu
@@ -39,6 +39,13 @@ class Bot(commands.Bot):
         if payload.user_id != self.user.id and payload.message_id in self.menus:
             await self.menus[payload.message_id].on_reaction_remove(payload)
 
+    async def close(self):
+        """Closes your bot."""
+        dict = self.menus.copy()
+        for i in dict:
+            await dict[i].on_shutdown()
+        await super().close()
+
 class Menu():
     """A reaction based menu for Discord bots."""
 
@@ -48,7 +55,7 @@ class Menu():
     message = discord.Message
     buttons = []
 
-    async def create(self, ctx, bot, title=None, body=None, color=None, buttons=[]):
+    async def create(self, ctx, bot, title=None, body=None, color=None, buttons=[], on_close=None):
         """An easy method of generating reaction based Discord bot menus."""
         self.bot = bot
         # Load up the message content and send.
@@ -58,6 +65,7 @@ class Menu():
         self.buttons = []
         for i in buttons:
             await self.add_button(i)
+        self.on_close = on_close
 
     async def edit(self, title=None, body=None, color=None):
         """A method used to edit the contents of an existing custom menu."""
@@ -97,6 +105,11 @@ class Menu():
             if payload.emoji.name == i.emoji.name:
                 await i.release(payload, self)
 
+    async def on_shutdown(self):
+        # What should we do when the bot get shutdown with our menu open?
+        if self.on_close != None:
+            await self.on_close(self)
+        await self.close()
 
 class MenuButton():
     """A reaction based button for a Discord bot menu."""
